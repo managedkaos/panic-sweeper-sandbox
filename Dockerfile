@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM pull rockylinux:9.3-minimal
+FROM rockylinux:9.3-minimal
 
 ARG build_number
 ARG build_timestamp
