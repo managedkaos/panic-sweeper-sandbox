@@ -1,0 +1,122 @@
+Description: 'Panic Sweeper Sandbox'
+
+
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+
+  Profile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref Role]
+
+
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow TCP traffic on ports 22 and 8080
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+
+
+  Server0:
+    Type: AWS::EC2::Instance
+
+    Properties:
+      InstanceType: t3.small
+
+      ImageId: ami-0adebe3adcec1fa34
+
+      IamInstanceProfile: !Ref Profile
+
+      KeyName: panic-sweeper-sandbox
+
+      SecurityGroupIds:
+        - !GetAtt SecurityGroup.GroupId
+
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}
+
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp3
+            VolumeSize: 100
+            DeleteOnTermination: true
+            Encrypted: false
+
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            exec > >(tee /var/log/user-data.log) 2>&1
+
+            dnf update -y
+            dnf install -y dnf-utils
+            dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+            dnf install -y \
+              containerd.io \
+              docker-buildx-plugin \
+              docker-ce \
+              docker-ce-cli \
+              docker-compose-plugin \
+              python3 \
+              python3-pip \
+              vim \
+              wget
+
+            pip3 install -U pip
+
+            echo "## docker is $(docker --version | head)"
+            echo "## wget is $(wget --version | grep linux-gnu.)"
+            echo "## python is $(python3 --version | head)"
+            echo "## pip3 is $(pip3 --version | head)"
+
+            dnf install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+
+            systemctl enable amazon-ssm-agent
+            systemctl start amazon-ssm-agent
+            systemctl enable docker.service
+            systemctl start docker.service
+
+            # Install cfn-bootstrap tools (for later LoL)
+            pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+
+
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref Server0
+
+
+Outputs:
+  ApplicationUrl:
+    Value: !Sub 'http://${Server0.PublicDnsName}:8080/'
+    Description: Follow this URL to accesss the Open WebUI application
+
+
+  ServerUrl:
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/ec2/home?region=${AWS::Region}#ConnectToInstance:instanceId=${Server0}"
+    Description: Follow this URL to open a terminal on the server where Open WebUI is running
