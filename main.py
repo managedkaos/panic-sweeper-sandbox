@@ -2,10 +2,11 @@
 Use this template to create a custom Python function
 """
 
+import socket
+
 # import os
 # import re
 import sys
-import socket
 
 
 def custom_function(function_input):
