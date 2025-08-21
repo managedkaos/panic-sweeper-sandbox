@@ -24,6 +24,7 @@ help:
 all: requirements lint test build
 
 development-requirements: requirements
+	pip install --quiet --upgrade pip
 	pip install --quiet --upgrade --requirement development-requirements.txt
 
 pre-commit-install: development-requirements
@@ -45,7 +46,6 @@ lint:
 	pylint --errors-only --disable=C0301 *.py
 	black --diff *.py
 	isort --check-only --diff *.py
-	rain fmt --verify ./cloudformation.yml
 
 fmt: black isort rain
 
@@ -55,8 +55,11 @@ black:
 isort:
 	isort *.py
 
-rain:
+rain-write:
 	rain fmt --write ./cloudformation.yml
+
+rain-lint:
+	rain fmt --verify ./cloudformation.yml
 
 test:
 	python -m unittest --verbose --failfast
