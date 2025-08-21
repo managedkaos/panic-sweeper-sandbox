@@ -1,4 +1,5 @@
 # Development dependencies
+boto3
 bandit
 black
 detect-secrets

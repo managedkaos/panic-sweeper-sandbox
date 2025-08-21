@@ -1,3 +1,4 @@
+ID = i-0dd190e9749b37360
 APP = $(notdir $(CURDIR))
 TAG = $(shell echo "$$(date +%F)-$$(git rev-parse --short HEAD)")
 DOCKER_REPO = ghcr.io/managedkaos
@@ -64,5 +65,8 @@ clean:
 	docker container rm $(APP) || true
 	@rm -rf ./__pycache__ ./tests/__pycache__ .ruff_cache
 	@rm -f .*~ *.pyc
+
+connect:
+	python scripts/connect-to-server.py $(ID)
 
 .PHONY: help requirements lint black isort test build clean development-requirements pre-commit-install pre-commit-run pre-commit-clean
