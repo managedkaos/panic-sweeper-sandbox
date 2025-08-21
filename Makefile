@@ -63,7 +63,9 @@ rain-lint:
 
 test:
 	python -m unittest --verbose --failfast
-	./test_coredumpctl_connection.sh
+
+test-image:
+	./test_image.sh
 
 build: lint test
 	docker build --tag $(APP):$(TAG) .

@@ -1,11 +1,8 @@
 """
-Use this template to create a custom Python function
+The main function
 """
 
 import socket
-
-# import os
-# import re
 import sys
 
 
