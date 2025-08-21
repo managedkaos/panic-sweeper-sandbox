@@ -36,4 +36,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py /usr/local/bin
 
 # Run the script when the container launches
-ENTRYPOINT ["python", "/usr/local/bin/main.py"]
+ENTRYPOINT ["python3", "/usr/local/bin/main.py"]
