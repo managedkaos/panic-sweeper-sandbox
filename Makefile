@@ -45,14 +45,18 @@ lint:
 	pylint --errors-only --disable=C0301 *.py
 	black --diff *.py
 	isort --check-only --diff *.py
+	rain fmt --verify ./cloudformation.yml
 
-fmt: black isort
+fmt: black isort rain
 
 black:
 	black *.py
 
 isort:
 	isort *.py
+
+rain:
+	rain fmt --write ./cloudformation.yml
 
 test:
 	python -m unittest --verbose --failfast
