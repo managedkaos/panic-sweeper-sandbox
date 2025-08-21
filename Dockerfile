@@ -19,13 +19,9 @@ ENV JAVA_OPTS="" \
 ENV WORKDIR=/work
 RUN mkdir /work
 
-RUN yum install -y java-1.8.0-openjdk \
-                   epel-release \
-                   mtr \
+RUN yum install -y epel-release \
                    python3 \
                    python3-pip \
-                   traceroute && \
-    yum install -y python3-gobject-base \
                    varnish-${VARNISH_VERSION} && \
     pip3 install pydbus
 
