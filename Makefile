@@ -55,7 +55,7 @@ black:
 isort:
 	isort *.py
 
-rain-write:
+rain:
 	rain fmt --write ./cloudformation.yml
 
 rain-lint:

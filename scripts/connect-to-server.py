@@ -1,9 +1,10 @@
-import boto3
-import sys
-import subprocess
 import json
 import shutil
 import signal
+import subprocess
+import sys
+
+import boto3
 
 
 def check_session_manager_plugin():
