@@ -66,7 +66,16 @@ clean:
 	@rm -rf ./__pycache__ ./tests/__pycache__ .ruff_cache
 	@rm -f .*~ *.pyc
 
-connect:
-	python scripts/connect-to-server.py $(ID)
+start:
+	aws ec2 start-instances --instance-ids $(INSTANCE_ID)
+	aws ec2 wait instance-running --instance-ids $(INSTANCE_ID)
+	aws ec2 wait instance-status-ok --instance-ids $(INSTANCE_ID)
+
+connect: start
+	python scripts/connect-to-server.py $(INSTANCE_ID)
+
+stop:
+	aws ec2 stop-instances --instance-ids $(INSTANCE_ID)
+	aws ec2 wait instance-stopped --instance-ids $(INSTANCE_ID)
 
 .PHONY: help requirements lint black isort test build clean development-requirements pre-commit-install pre-commit-run pre-commit-clean
