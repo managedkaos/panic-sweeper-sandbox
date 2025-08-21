@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM rockylinux:9.3-minimal
+FROM rockylinux:9.3
 
 ARG build_number
 ARG build_timestamp
@@ -22,7 +22,7 @@ RUN mkdir /work
 RUN yum install -y epel-release \
                    python3 \
                    python3-pip \
-                   varnish-${VARNISH_VERSION} && \
+                   varnish && \
     pip3 install pydbus
 
 # Set the working directory in the container
