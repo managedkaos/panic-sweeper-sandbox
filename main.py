@@ -5,6 +5,7 @@ Use this template to create a custom Python function
 # import os
 # import re
 import sys
+import socket
 
 
 def custom_function(function_input):
@@ -20,4 +21,5 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.argv.append("default_value")
 
+    hostname = socket.gethostname()
     print(custom_function(sys.argv[1]))

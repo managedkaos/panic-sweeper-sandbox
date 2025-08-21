@@ -67,6 +67,7 @@ Resources:
             docker-ce \
             docker-ce-cli \
             docker-compose-plugin \
+            git \
             python3 \
             python3-pip \
             vim \
@@ -74,10 +75,13 @@ Resources:
 
           pip3 install -U pip
 
-          echo "## docker is $(docker --version | head)"
+          echo "## docker is $(docker --version)"
           echo "## wget is $(wget --version | grep linux-gnu.)"
-          echo "## python is $(python3 --version | head)"
-          echo "## pip3 is $(pip3 --version | head)"
+          echo "## python is $(python3 --version)"
+          echo "## pip3 is $(pip3 --version)"
+          echo "## git is $(git --version)"
+
+          git clone https://github.com/managedkaos/panic-sweeper-sandbox.git
 
           dnf install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
 
@@ -88,6 +92,8 @@ Resources:
 
           # Install cfn-bootstrap tools (for later LoL)
           pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+
+          echo "## $(date) Complete!"
 
 Outputs:
   ApplicationUrl:
