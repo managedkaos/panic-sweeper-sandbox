@@ -48,3 +48,6 @@ The following hooks are configured to run automatically on commit:
 - `make pre-commit-clean` - Remove pre-commit hooks
 - `make lint` - Run linting tools manually
 - `make fmt` - Format code with black and isort
+
+
+https://stackoverflow.com/questions/72829097/is-there-a-way-to-know-the-status-of-a-systemctl-process-running-in-the-host-fro
