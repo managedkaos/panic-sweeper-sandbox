@@ -33,7 +33,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy necessary files
-COPY main.py /usr/local/bin
+COPY save_panic_and_coredump.py main.py /usr/local/bin
 
 # Run the script when the container launches
 CMD ["python3", "/usr/local/bin/main.py"]
