@@ -1,4 +1,4 @@
-FROM cdno.docker.artifactory.global.bamgrid.net/rockylinux:9
+FROM rockylinux:9.3
 
 ARG build_number
 ARG build_timestamp
