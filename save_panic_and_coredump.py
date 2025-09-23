@@ -41,7 +41,9 @@ def get_panic_date():
     """
     try:
         # Run `varnishadm panic.show` and capture output
-        panic_output = subprocess.check_output(["varnishadm", "panic.show"], text=True)
+        panic_output = subprocess.check_output(
+            ["sudo", "varnishadm", "panic.show"], text=True
+        )
 
         # Extract the date line from the output
         for line in panic_output.splitlines():
