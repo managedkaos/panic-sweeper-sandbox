@@ -32,6 +32,7 @@ Requirements:
 import datetime
 import socket
 import subprocess
+import sys
 
 
 def get_panic_date():
@@ -64,22 +65,41 @@ def get_panic_date():
 def write_panic_to_file(hostname, date, panic_output):
     """
     Write the panic output to a file named `HOST-DATE.panic`.
+
+    Args:
+        hostname (str): Hostname for file naming
+        date (str): Formatted date string for file naming
+        panic_output (str): Panic output content to write
+
+    Returns:
+        str: Filename if successful, None if failed
     """
     filename = f"{hostname}-{date}.panic"
     try:
         with open(filename, "w", encoding="utf-8") as file:
             file.write(panic_output)
         print(f"Panic output written to {filename}")
+        return filename
     except PermissionError as e:
         print(f"Permission denied when writing to {filename}: {e}")
+        return None
     except IOError as e:
         print(f"Error writing to file {filename}: {e}")
+        return None
 
 
 def find_core_dump(panic_date, hostname, date):
     """
     Use `coredumpctl dump` with `--since` and `--until` filters to locate the core dump,
     write it to a file named `HOST-DATE.dump`, and capture the output in `HOST-DATE.info`.
+
+    Args:
+        panic_date (datetime): The panic date to search around
+        hostname (str): Hostname for file naming
+        date (str): Formatted date string for file naming
+
+    Returns:
+        dict: Dictionary with 'dump_file' and 'info_file' keys if successful, None if failed
     """
     try:
         # Calculate the time range for matching the core dump
@@ -114,35 +134,93 @@ def find_core_dump(panic_date, hostname, date):
         with open(diagnostics_filename, "w", encoding="utf-8") as file:
             file.write(result)
         print(f"Diagnostic output written to {diagnostics_filename}")
+
+        return {"dump_file": dump_filename, "info_file": diagnostics_filename}
     except subprocess.CalledProcessError as e:
         print(f"Error running coredumpctl dump: {e}")
+        return None
     except PermissionError as e:
         print(f"Permission error when writing files: {e}")
+        return None
     except IOError as e:
         print(f"File I/O error processing core dump: {e}")
+        return None
+
+
+def save_panic_and_coredump(hostname=None):
+    """
+    Main function to capture panic information and core dump files.
+
+    Args:
+        hostname (str, optional): Hostname to use for file naming.
+                                 If None, uses socket.gethostname()
+
+    Returns:
+        dict: Dictionary containing the results with keys:
+              - 'success': bool indicating if operation succeeded
+              - 'panic_file': str path to panic file if created
+              - 'dump_file': str path to dump file if created
+              - 'info_file': str path to info file if created
+              - 'error': str error message if operation failed
+    """
+    result = {
+        "success": False,
+        "panic_file": None,
+        "dump_file": None,
+        "info_file": None,
+        "error": None,
+    }
+
+    try:
+        # Get the hostname of the system
+        if hostname is None:
+            hostname = socket.gethostname()
+
+        # Step 1: Get the panic date and output
+        panic_date, panic_output = get_panic_date()
+        if not panic_date or not panic_output:
+            result["error"] = "No panic date found or unable to retrieve panic output"
+            return result
+
+        # Format the date for file naming
+        formatted_date = panic_date.strftime("%Y-%m-%d-%H-%M-%S")
+
+        # Step 2: Write panic output to file
+        panic_file = write_panic_to_file(hostname, formatted_date, panic_output)
+        if panic_file:
+            result["panic_file"] = panic_file
+
+        # Step 3: Find and process the core dump
+        dump_files = find_core_dump(panic_date, hostname, formatted_date)
+        if dump_files:
+            result["dump_file"] = dump_files.get("dump_file")
+            result["info_file"] = dump_files.get("info_file")
+
+        result["success"] = True
+        return result
+
+    except Exception as e:
+        result["error"] = str(e)
+        return result
 
 
 def main():
     """
-    Main function to capture panic information and core dump files.
+    Command-line interface for the panic sweeper library.
     """
-    # Get the hostname of the system
-    hostname = socket.gethostname()
+    result = save_panic_and_coredump()
 
-    # Step 1: Get the panic date and output
-    panic_date, panic_output = get_panic_date()
-    if not panic_date or not panic_output:
-        print("No panic date found or unable to retrieve panic output. Exiting.")
-        return
-
-    # Format the date for file naming
-    formatted_date = panic_date.strftime("%Y-%m-%d-%H-%M-%S")
-
-    # Step 2: Write panic output to file
-    write_panic_to_file(hostname, formatted_date, panic_output)
-
-    # Step 3: Find and process the core dump
-    find_core_dump(panic_date, hostname, formatted_date)
+    if result["success"]:
+        print("Panic and core dump saved successfully!")
+        if result["panic_file"]:
+            print(f"Panic file: {result['panic_file']}")
+        if result["dump_file"]:
+            print(f"Dump file: {result['dump_file']}")
+        if result["info_file"]:
+            print(f"Info file: {result['info_file']}")
+    else:
+        print(f"Error: {result['error']}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

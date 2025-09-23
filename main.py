@@ -1,11 +1,11 @@
 """
-The main function
+The main function for panic-sweeper application.
 """
 
 import socket
 import sys
 
-from save_panic_and_coredump import find_core_dump, get_panic_date, write_panic_to_file
+from save_panic_and_coredump import save_panic_and_coredump
 
 
 def custom_function(function_input):
@@ -15,6 +15,27 @@ def custom_function(function_input):
     return f"Custom function output: {function_input}"
 
 
+def run_panic_sweeper():
+    """
+    Run the panic sweeper functionality using the library.
+    """
+    print("Running panic sweeper...")
+    result = save_panic_and_coredump()
+
+    if result["success"]:
+        print("✅ Panic and core dump saved successfully!")
+        if result["panic_file"]:
+            print(f"📄 Panic file: {result['panic_file']}")
+        if result["dump_file"]:
+            print(f"💾 Dump file: {result['dump_file']}")
+        if result["info_file"]:
+            print(f"ℹ️  Info file: {result['info_file']}")
+        return True
+    else:
+        print(f"❌ Error: {result['error']}")
+        return False
+
+
 if __name__ == "__main__":
     # Set the input to be sys.argv[1] if it exists
     # otherwise set it to a default value
@@ -22,19 +43,13 @@ if __name__ == "__main__":
         sys.argv.append("default_value")
 
     hostname = socket.gethostname()
-    print(custom_function(sys.argv[1]))
 
-    # Step 1: Get the panic date and output
-    panic_date, panic_output = get_panic_date()
-    if not panic_date or not panic_output:
-        print("No panic date found or unable to retrieve panic output. Exiting.")
-        sys.exit(0)
+    # Run the panic sweeper
+    print(f"Hostname: {hostname}")
+    success = run_panic_sweeper()
 
-    # Format the date for file naming
-    formatted_date = panic_date.strftime("%Y-%m-%d-%H-%M-%S")
-
-    # Step 2: Write panic output to file
-    write_panic_to_file(hostname, formatted_date, panic_output)
-
-    # Step 3: Find and process the core dump
-    find_core_dump(panic_date, hostname, formatted_date)
+    if success:
+        print("\n🎉 Panic sweeper completed successfully!")
+    else:
+        print("\n💥 Panic sweeper encountered an error.")
+        sys.exit(1)
