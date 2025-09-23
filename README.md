@@ -51,3 +51,53 @@ The following hooks are configured to run automatically on commit:
 
 
 https://stackoverflow.com/questions/72829097/is-there-a-way-to-know-the-status-of-a-systemctl-process-running-in-the-host-fro
+
+
+```bash
+docker run -it --rm \
+  -v /bin/systemctl:/bin/systemctl:ro \
+  -v /run/systemd/system:/run/systemd/system:ro \
+  -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro \
+  -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+  ghcr.io/managedkaos/panic-sweeper-sandbox:main \
+  systemctl --no-pager status varnish
+```
+
+```Makefile
+test: pull
+	docker run  --network=host --interactive --tty --rm \
+		-v /var/lib/varnish:/var/lib/varnish:ro \
+		-v /usr/bin/coredumpctl:/usr/bin/coredumpctl:ro \
+		-v /var/lib/systemd/coredump:/var/lib/systemd/coredump:ro \
+		-v /bin/systemctl:/bin/systemctl:ro \
+		-v /run/systemd/system:/run/systemd/system:ro \
+		-v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro \
+		-v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+		-v $(PWD):/work \
+		ghcr.io/managedkaos/panic-sweeper-sandbox:main
+
+new: pull
+	docker run  --network=host --interactive --tty --rm \
+		-v /var/lib/varnish:/var/lib/varnish:ro \
+		-v /var/lib/systemd/coredump:/var/lib/systemd/coredump:ro \
+	    -v /var/log/journal:/var/log/journal:ro \
+	    -v /run/log/journal:/run/log/journal:ro \
+	    -v /bin/systemctl:/bin/systemctl:ro \
+	    -v /usr/bin/coredumpctl:/usr/bin/coredumpctl:ro \
+	    -v /run/systemd/system:/run/systemd/system:ro \
+	    -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro \
+	    -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+	    -v $(PWD):/work \
+	    ghcr.io/managedkaos/panic-sweeper-sandbox:main
+c:
+	docker run  --network=host --interactive --tty --rm \
+		-v /var/lib/varnish:/var/lib/varnish \
+		-v /var/lib/systemd/coredump:/var/lib/systemd/coredump \
+		-v /bin/systemctl:/bin/systemctl:ro \
+		-v /run/systemd/system:/run/systemd/system:ro \
+		-v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro \
+		-v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+		ghcr.io/managedkaos/panic-sweeper-sandbox:main bash
+pull:
+	docker pull ghcr.io/managedkaos/panic-sweeper-sandbox:main
+```
