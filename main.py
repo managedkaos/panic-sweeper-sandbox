@@ -25,11 +25,11 @@ def run_panic_sweeper():
     if result["success"]:
         print("✅ Panic and core dump saved successfully!")
         if result["panic_file"]:
-            print(f"📄 Panic file: {result['panic_file']}")
+            print(f"- Panic file: {result['panic_file']}")
         if result["dump_file"]:
-            print(f"💾 Dump file: {result['dump_file']}")
+            print(f"- Dump file: {result['dump_file']}")
         if result["info_file"]:
-            print(f"ℹ️  Info file: {result['info_file']}")
+            print(f"- Info file: {result['info_file']}")
         return True
     else:
         print(f"❌ Error: {result['error']}")
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     success = run_panic_sweeper()
 
     if success:
-        print("\n🎉 Panic sweeper completed successfully!")
+        print("\nPanic sweeper completed successfully!")
     else:
-        print("\n💥 Panic sweeper encountered an error.")
+        print("\nPanic sweeper encountered an error.")
         sys.exit(1)

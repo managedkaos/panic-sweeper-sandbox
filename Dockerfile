@@ -1,5 +1,4 @@
-# Use an official Python runtime as a parent image
-FROM rockylinux:9.3
+FROM cdno.docker.artifactory.global.bamgrid.net/rockylinux:9
 
 ARG build_number
 ARG build_timestamp
@@ -9,9 +8,8 @@ ARG git_branch_name
 ARG git_sha1
 ARG project_name
 
-ENV JAVA_OPTS="" \
-    APP_ENV="docker" \
-    BUILD_DATE=${build_timestamp} \
+
+ENV BUILD_DATE=${build_timestamp} \
     BUILD_NUMBER=${build_number} \
     GIT_SHA_1=${git_sha1} \
     VARNISH_VERSION="7.5.1d12"
@@ -19,9 +17,12 @@ ENV JAVA_OPTS="" \
 ENV WORKDIR=/work
 RUN mkdir /work
 
+# TODO: Ask about using varnish-${VARNISH_VERSION}
 RUN yum install -y epel-release \
                    python3 \
                    python3-pip \
+                   sudo \
+                   which \
                    varnish && \
     pip3 install pydbus
 
@@ -30,7 +31,7 @@ WORKDIR ${WORKDIR}
 
 # Install runtime dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --requirement requirements.txt
 
 # Copy necessary files
 COPY save_panic_and_coredump.py main.py /usr/local/bin
