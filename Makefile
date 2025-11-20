@@ -62,7 +62,7 @@ rain-lint:
 	rain fmt --verify ./cloudformation.yml
 
 test:
-	python -m unittest --verbose --failfast
+	python -m unittest --verbose --failfast ./tests/test_*.py
 
 test-image:
 	./test_image.sh

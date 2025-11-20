@@ -1,3 +1,4 @@
+# pylint: disable=duplicate-code
 """
 Script to save Varnish panic information and associated core dump files.
 
@@ -30,7 +31,7 @@ Requirements:
 """
 
 import datetime
-import socket
+import os
 import subprocess
 import sys
 
@@ -38,12 +39,39 @@ import sys
 def get_panic_date():
     """
     Capture the date from `varnishadm panic.show` and format it for use with coredumpctl.
+
+    Returns:
+        tuple: (panic_date, panic_output, status) where:
+            - panic_date: datetime object if panic found, None otherwise
+            - panic_output: str if panic found, None otherwise
+            - status: "success" if panic found, "no_panic" if no panic (expected),
+                      "error" if an actual error occurred
     """
     try:
         # Run `varnishadm panic.show` and capture output
-        panic_output = subprocess.check_output(
-            ["/usr/bin/sudo", "varnishadm", "panic.show"], text=True
+        result = subprocess.run(
+            ["/usr/bin/varnishadm", "panic.show"],
+            text=True,
+            capture_output=True,
+            check=False,
         )
+
+        # Check if this is the "no panic" case
+        error_output = (result.stdout or "") + (result.stderr or "")
+        if result.returncode in (1, 300) and "Child has not panicked" in error_output:
+            # No panic exists - this is expected, not an error
+            return None, None, "no_panic"
+
+        # If return code is non-zero and not the "no panic" case, raise an error
+        if result.returncode != 0:
+            raise subprocess.CalledProcessError(
+                result.returncode,
+                ["/usr/bin/varnishadm", "panic.show"],
+                result.stdout,
+                result.stderr,
+            )
+
+        panic_output = result.stdout
 
         # Extract the date line from the output
         for line in panic_output.splitlines():
@@ -53,15 +81,18 @@ def get_panic_date():
                 panic_date = datetime.datetime.strptime(
                     panic_date_str, "%a, %d %b %Y %H:%M:%S %Z"
                 )
-                return panic_date, panic_output
+                return panic_date, panic_output, "success"
+
     except subprocess.CalledProcessError as e:
         print("Error running varnishadm panic.show:", e)
+
     except ValueError as e:
         print("Error parsing panic date format:", e)
+
     except IndexError as e:
         print("Error extracting panic date from output:", e)
 
-    return None, None
+    return None, None, "error"
 
 
 def write_panic_to_file(hostname, date, panic_output):
@@ -118,7 +149,7 @@ def find_core_dump(panic_date, hostname, date):
 
         # Run `coredumpctl dump` to capture the core dump
         command = [
-            "coredumpctl",
+            "/usr/bin/coredumpctl",
             "dump",
             "--since",
             since_str,
@@ -138,12 +169,15 @@ def find_core_dump(panic_date, hostname, date):
         print(f"Diagnostic output written to {diagnostics_filename}")
 
         return {"dump_file": dump_filename, "info_file": diagnostics_filename}
+
     except subprocess.CalledProcessError as e:
         print(f"Error running coredumpctl dump: {e}")
         return None
+
     except PermissionError as e:
         print(f"Permission error when writing files: {e}")
         return None
+
     except IOError as e:
         print(f"File I/O error processing core dump: {e}")
         return None
@@ -160,6 +194,7 @@ def save_panic_and_coredump(hostname=None):
     Returns:
         dict: Dictionary containing the results with keys:
               - 'success': bool indicating if operation succeeded
+              - 'no_panic': bool indicating if no panic exists (expected, not an error)
               - 'panic_file': str path to panic file if created
               - 'dump_file': str path to dump file if created
               - 'info_file': str path to info file if created
@@ -167,6 +202,7 @@ def save_panic_and_coredump(hostname=None):
     """
     result = {
         "success": False,
+        "no_panic": False,
         "panic_file": None,
         "dump_file": None,
         "info_file": None,
@@ -175,12 +211,16 @@ def save_panic_and_coredump(hostname=None):
 
     try:
         # Get the hostname of the system
-        if hostname is None:
-            hostname = socket.gethostname()
+        hostname = os.environ.get("HOST", "hostname-not-specified")
 
         # Step 1: Get the panic date and output
-        panic_date, panic_output = get_panic_date()
-        if not panic_date or not panic_output:
+        panic_date, panic_output, status = get_panic_date()
+        if status == "no_panic":
+            # No panic exists - this is expected, not an error
+            result["no_panic"] = True
+            return result
+
+        if status == "error" or not panic_date or not panic_output:
             result["error"] = "No panic date found or unable to retrieve panic output"
             return result
 
@@ -201,8 +241,16 @@ def save_panic_and_coredump(hostname=None):
         result["success"] = True
         return result
 
-    except Exception as e:
-        result["error"] = str(e)
+    except subprocess.CalledProcessError as e:
+        # Handle errors from subprocess calls (varnishadm, coredumpctl, etc.)
+        result["error"] = f"Command execution failed: {e.cmd} returned {e.returncode}"
+        result["error_details"] = e.stderr if hasattr(e, "stderr") else str(e)
+        return result
+
+    except (IOError, OSError) as e:
+        # Handle file I/O errors (reading/writing files, permission issues)
+        result["error"] = f"File operation failed: {str(e)}"
+        result["error_code"] = e.errno if hasattr(e, "errno") else None
         return result
 
 
@@ -214,10 +262,13 @@ def main():
 
     if result["success"]:
         print("Panic and core dump saved successfully!")
+
         if result["panic_file"]:
             print(f"Panic file: {result['panic_file']}")
+
         if result["dump_file"]:
             print(f"Dump file: {result['dump_file']}")
+
         if result["info_file"]:
             print(f"Info file: {result['info_file']}")
     else:
